@@ -4,6 +4,7 @@
 function tokenizer(templateDomStr) {
     let tokens = [], type = '', val = '';
 
+    // 生成obj  存入 tokens
     function push() {
         if (val) {
             if (type === 'tagstart') val = val.slice(1) // <div> => div
@@ -35,24 +36,56 @@ function tokenizer(templateDomStr) {
             type = 'props'
             continue
         }
-        val +=ch;
+        val += ch;
     }
     return tokens;
 }
 
 /** 返回ast */
 function parse(templateDomStr) {
-    const token = tokenizer(templateDomStr)
-    let cur= 0,ast= {
-        type:'root',
-        props:[],
-        children:[]
+    const tokens = tokenizer(templateDomStr)
+    let cur = 0, ast = {
+        type: 'root',
+        props: [],
+        children: []
     }
-    function walk(){
-        
+    // 递归 组建 ast抽象语法树
+    function walk() {
+        let token = tokens[cur]
+        if (token.type == 'tagstart') {
+            let node = {
+                type: 'elemnet',
+                tag: token.val,
+                props: [],
+                children: []
+            }
+            token = token[++cur]
+            while (token.type !== 'tagend') {
+                if (token.type == 'props') {
+                    node.props.push(walk())
+                } else {
+                    node.children.push(walk())
+                }
+                token = token[cur]
+            }
+            cur++
+            return node
+        }
+        if (token.type == 'text') {
+            cur++
+            return token
+        }
+        if (token.type == 'props') {
+            cur++
+            const [key, val] = token.val.split('=')
+            return {
+                key,
+                val
+            }
+        }
     }
 
-    while(cur < tokens.length){
+    while (cur < tokens.length) {
         ast.children.push(walk())
     }
     console.log(token);
@@ -67,6 +100,7 @@ function transform() {
 // 编译
 function compiler(templateDomStr) {
     const ast = parse(templateDomStr);
+    console.log('ast==',ast);
     transform(ast)
 }
 
